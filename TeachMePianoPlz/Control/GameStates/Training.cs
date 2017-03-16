@@ -33,6 +33,7 @@ namespace TeachMePianoPlz
             public int Index;
             public int X;
             public int Y;
+            public bool HideLetter;
         }
 
         private Random _rng = new Random();
@@ -43,6 +44,7 @@ namespace TeachMePianoPlz
         public int _hit_notes = 0;
         public int _missed_notes = 0;
         public int _bad_notes_played = 0;
+        public int _streak = 0;
 
         public Training()
         {
@@ -61,11 +63,13 @@ namespace TeachMePianoPlz
                 {
                     _notes.RemoveAt(i);
                     _hit_notes++;
+                    _streak++;
                     return;
                 }
             }
 
             _bad_notes_played++;
+            _streak = 0;
         }
 
         public void Draw()
@@ -82,8 +86,42 @@ namespace TeachMePianoPlz
             // draw the notes
             foreach (Note n in _notes)
             {
-                Teacher.Instance.Graphics.DrawSprite(n.X, n.Y, GraphicsID.Notes, n.Index);
+                if(n.HideLetter)
+                    Teacher.Instance.Graphics.DrawSprite(n.X, n.Y, GraphicsID.Notes, 7);
+                else
+                    Teacher.Instance.Graphics.DrawSprite(n.X, n.Y, GraphicsID.Notes, n.Index);
             }
+
+            DrawNumber(4, Teacher.Instance.Graphics.Height - 42, (int)(OverallHitPercent() * 100), true);
+            DrawNumber(200, Teacher.Instance.Graphics.Height - 42, _streak, false);
+
+            DrawNumber(600, Teacher.Instance.Graphics.Height - 42, _hit_notes, false);
+            DrawNumber(800, Teacher.Instance.Graphics.Height - 42, _bad_notes_played, false);
+            DrawNumber(1000, Teacher.Instance.Graphics.Height - 42, _missed_notes, false);
+        }
+
+        private void DrawNumber(int x, int y, int value, bool percent)
+        {
+            string stringValue = value.ToString();
+
+            int i = 0;
+
+            foreach (char c in stringValue)
+            {
+                Teacher.Instance.Graphics.DrawSprite(x + i * 38, y, GraphicsID.Digits, c - '0');
+                i++;
+            }
+
+            if(percent)
+                Teacher.Instance.Graphics.DrawSprite(x + i * 38, y, GraphicsID.Digits, 10);
+        }
+
+        private float OverallHitPercent()
+        {
+            if (_hit_notes + _bad_notes_played + _missed_notes == 0)
+                return 0;
+            else
+                return _hit_notes / (_hit_notes + _bad_notes_played + _missed_notes);
         }
 
         public const int NEW_NOTE_COOLDOWN = 120;
@@ -97,6 +135,7 @@ namespace TeachMePianoPlz
                 {
                     _notes.RemoveAt(i);
                     _missed_notes++;
+                    _streak = 0;
                 }
                 else
                     _notes[i].X -= _speed;
@@ -108,15 +147,28 @@ namespace TeachMePianoPlz
             }
             else
             {
-                int note = _rng.Next(7);
                 _new_note_heat = NEW_NOTE_COOLDOWN - 1;
-                _notes.Add(new Note()
+
+                if (_rng.Next(10) > 0)
                 {
-                    Index = note,
-                    X = Teacher.Instance.Graphics.Width,
-                    Y = NOTE_Y[note] * 90
-                });
+                    AddNote();
+
+                    if (_rng.Next(10) == 0)
+                        AddNote();
+                }
             }
+        }
+
+        private void AddNote()
+        {
+            int note = _rng.Next(7);
+            _notes.Add(new Note()
+            {
+                Index = note,
+                X = Teacher.Instance.Graphics.Width,
+                Y = NOTE_Y[note] * 90,
+                HideLetter = _rng.Next(10) == 0,
+            });
         }
 
         public void EnterState()
