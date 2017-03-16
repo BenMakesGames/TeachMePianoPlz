@@ -8,6 +8,7 @@ namespace TeachMePianoPlz
 {
     public enum GraphicsID
     {
-        Notes
+        Notes,
+        Digits,
     }
 }
