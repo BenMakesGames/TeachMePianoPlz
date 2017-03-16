@@ -37,9 +37,13 @@ namespace TeachMePianoPlz
         }
 
         private Random _rng = new Random();
+
+        // notes can be removed at any time (from MIDI input), so we need a lock
+        private object _notes_lock = new { };
+
         private List<Note> _notes = new List<Note>();
 
-        private int _speed = 4;
+        private int _speed = 6;
 
         public int _hit_notes = 0;
         public int _missed_notes = 0;
@@ -57,14 +61,17 @@ namespace TeachMePianoPlz
         {
             char letter = m.Pitch.NotePreferringSharps().Letter;
 
-            for(int i = _notes.Count - 1; i >= 0; i--)
+            lock (_notes_lock)
             {
-                if(_notes[i].X < 80 && _notes[i].X > -80 && LETTER_TO_INDEX[letter] == _notes[i].Index)
+                for (int i = _notes.Count - 1; i >= 0; i--)
                 {
-                    _notes.RemoveAt(i);
-                    _hit_notes++;
-                    _streak++;
-                    return;
+                    if (_notes[i].X < 80 && _notes[i].X > -80 && LETTER_TO_INDEX[letter] == _notes[i].Index)
+                    {
+                        _notes.RemoveAt(i);
+                        _hit_notes++;
+                        _streak++;
+                        return;
+                    }
                 }
             }
 
@@ -84,12 +91,15 @@ namespace TeachMePianoPlz
             Teacher.Instance.Graphics.DrawLine(80, 0, 80, Teacher.Instance.Graphics.Height, Color.White);
 
             // draw the notes
-            foreach (Note n in _notes)
+            lock (_notes_lock)
             {
-                if(n.HideLetter)
-                    Teacher.Instance.Graphics.DrawSprite(n.X, n.Y, GraphicsID.Notes, 7);
-                else
-                    Teacher.Instance.Graphics.DrawSprite(n.X, n.Y, GraphicsID.Notes, n.Index);
+                foreach (Note n in _notes)
+                {
+                    if (n.HideLetter)
+                        Teacher.Instance.Graphics.DrawSprite(n.X, n.Y, GraphicsID.Notes, 7);
+                    else
+                        Teacher.Instance.Graphics.DrawSprite(n.X, n.Y, GraphicsID.Notes, n.Index);
+                }
             }
 
             DrawNumber(4, Teacher.Instance.Graphics.Height - 42, (int)(OverallHitPercent() * 100), true);
@@ -121,7 +131,7 @@ namespace TeachMePianoPlz
             if (_hit_notes + _bad_notes_played + _missed_notes == 0)
                 return 0;
             else
-                return _hit_notes / (_hit_notes + _bad_notes_played + _missed_notes);
+                return (float)_hit_notes / (_hit_notes + _bad_notes_played + _missed_notes);
         }
 
         public const int NEW_NOTE_COOLDOWN = 120;
@@ -129,16 +139,19 @@ namespace TeachMePianoPlz
 
         public void Update()
         {
-            for(int i = _notes.Count - 1; i >= 0; i--)
+            lock (_notes_lock)
             {
-                if (_notes[i].X <= -160 + _speed)
+                for (int i = _notes.Count - 1; i >= 0; i--)
                 {
-                    _notes.RemoveAt(i);
-                    _missed_notes++;
-                    _streak = 0;
+                    if (_notes[i].X <= -160 + _speed)
+                    {
+                        _notes.RemoveAt(i);
+                        _missed_notes++;
+                        _streak = 0;
+                    }
+                    else
+                        _notes[i].X -= _speed;
                 }
-                else
-                    _notes[i].X -= _speed;
             }
 
             if(_new_note_heat > 0)
@@ -151,24 +164,35 @@ namespace TeachMePianoPlz
 
                 if (_rng.Next(10) > 0)
                 {
-                    AddNote();
-
-                    if (_rng.Next(10) == 0)
-                        AddNote();
+                    AddNotes(_rng.Next(10) == 0 ? 2 : 1);
                 }
             }
         }
 
-        private void AddNote()
+        private void AddNotes(int noteCount)
         {
-            int note = _rng.Next(7);
-            _notes.Add(new Note()
+            if (noteCount > 7)
+                noteCount = 7;
+
+            List<int> availableNotes = new List<int>() { 0, 1, 2, 3, 4, 5, 6 };
+
+            lock (_notes_lock)
             {
-                Index = note,
-                X = Teacher.Instance.Graphics.Width,
-                Y = NOTE_Y[note] * 90,
-                HideLetter = _rng.Next(10) == 0,
-            });
+                for (int n = 0; n < noteCount; n++)
+                {
+                    int i = _rng.Next(availableNotes.Count);
+
+                    _notes.Add(new Note()
+                    {
+                        Index = availableNotes[i],
+                        X = Teacher.Instance.Graphics.Width,
+                        Y = NOTE_Y[availableNotes[i]] * 90,
+                        HideLetter = _rng.Next(10) == 0,
+                    });
+
+                    availableNotes.RemoveAt(i);
+                }
+            }
         }
 
         public void EnterState()
