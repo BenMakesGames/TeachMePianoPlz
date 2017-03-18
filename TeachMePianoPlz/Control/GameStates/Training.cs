@@ -12,17 +12,9 @@ namespace TeachMePianoPlz
     {
         private MIDIListener _midi_listener;
 
-        public int[] NOTE_Y = new int[]
-        {
-            5, 4, 10, 9, 8, 7, 6
-        };
+        public const int BASE_OCTAVE = 4;
 
-        public bool[] NEEDS_OWN_BAR = new bool[]
-        {
-            false, false, true, false, false, false, false
-        };
-
-        public Dictionary<char, int> LETTER_TO_INDEX = new Dictionary<char, int>()
+        public Dictionary<char, int> NOTE_TO_INDEX = new Dictionary<char, int>()
         {
             { 'A', 0 },
             { 'B', 1 },
@@ -35,9 +27,9 @@ namespace TeachMePianoPlz
 
         public class Note
         {
-            public int Index;
+            public char Letter;
+            public int Octave;
             public int X;
-            public int Y;
             public bool HideLetter;
         }
 
@@ -70,7 +62,7 @@ namespace TeachMePianoPlz
             {
                 for (int i = _notes.Count - 1; i >= 0; i--)
                 {
-                    if (_notes[i].X < 40 && _notes[i].X > -40 && LETTER_TO_INDEX[letter] == _notes[i].Index)
+                    if (_notes[i].X < 40 && _notes[i].X > -40 && letter == _notes[i].Letter)
                     {
                         _notes.RemoveAt(i);
                         _hit_notes++;
@@ -101,13 +93,16 @@ namespace TeachMePianoPlz
             {
                 foreach (Note n in _notes)
                 {
-                    if (NEEDS_OWN_BAR[n.Index])
-                        Teacher.Instance.Graphics.DrawLine(n.X - 15, n.Y + 45, n.X + 95, n.Y + 45, Color.Gray);
+                    if ((n.Letter <= 'C' && n.Octave == BASE_OCTAVE) || n.Octave < BASE_OCTAVE)
+                    {
+                        for(int y = NoteY('C', BASE_OCTAVE); y <= NoteY(n.Letter, n.Octave); y += 100)
+                            Teacher.Instance.Graphics.DrawLine(n.X - 15, y + 45, n.X + 95, y + 45, Color.Gray);
+                    }
 
                     if (n.HideLetter)
-                        Teacher.Instance.Graphics.DrawSprite(n.X, n.Y, GraphicsID.Notes, 7);
+                        Teacher.Instance.Graphics.DrawSprite(n.X, NoteY(n), GraphicsID.Notes, 7);
                     else
-                        Teacher.Instance.Graphics.DrawSprite(n.X, n.Y, GraphicsID.Notes, n.Index);
+                        Teacher.Instance.Graphics.DrawSprite(n.X, NoteY(n), GraphicsID.Notes, NOTE_TO_INDEX[n.Letter]);
                 }
             }
 
@@ -173,7 +168,7 @@ namespace TeachMePianoPlz
 
                 if (_rng.Next(10) > 0)
                 {
-                    AddNotes(_rng.Next(10) == 0 ? 2 : 1);
+                    AddNotes(_rng.Next(1, 3));
                 }
             }
         }
@@ -183,25 +178,42 @@ namespace TeachMePianoPlz
             if (noteCount > 7)
                 noteCount = 7;
 
-            List<int> availableNotes = new List<int>() { 0, 1, 2, 3, 4, 5, 6 };
+            List<Note> availableNotes = new List<Note>()
+            {
+                //new Note() { Letter = 'B', Octave = BASE_OCTAVE },
+                new Note() { Letter = 'C', Octave = BASE_OCTAVE },
+                new Note() { Letter = 'D', Octave = BASE_OCTAVE },
+                new Note() { Letter = 'E', Octave = BASE_OCTAVE },
+                new Note() { Letter = 'F', Octave = BASE_OCTAVE },
+                new Note() { Letter = 'G', Octave = BASE_OCTAVE },
+                //new Note() { Letter = 'A', Octave = BASE_OCTAVE + 1 },
+            };
 
             lock (_notes_lock)
             {
-                for (int n = 0; n < noteCount; n++)
+                for (int i = 0; i < noteCount; i++)
                 {
-                    int i = _rng.Next(availableNotes.Count);
+                    int n = _rng.Next(availableNotes.Count);
 
-                    _notes.Add(new Note()
-                    {
-                        Index = availableNotes[i],
-                        X = Teacher.Instance.Graphics.Width,
-                        Y = NOTE_Y[availableNotes[i]] * 50 + 105,
-                        HideLetter = _rng.Next(10) == 0,
-                    });
+                    Note note = availableNotes[n];
+                    note.X = Teacher.Instance.Graphics.Width;
+                    note.HideLetter = _rng.Next(10) == 0;
 
-                    availableNotes.RemoveAt(i);
+                    _notes.Add(note);
+
+                    availableNotes.RemoveAt(n);
                 }
             }
+        }
+
+        public int NoteY(Note n)
+        {
+            return NoteY(n.Letter, n.Octave);
+        }
+
+        public int NoteY(char letter, int octave)
+        {
+            return (12 - NOTE_TO_INDEX[letter]) * 50 + 105 + (BASE_OCTAVE - octave) * 7 * 50;
         }
 
         public void EnterState()
