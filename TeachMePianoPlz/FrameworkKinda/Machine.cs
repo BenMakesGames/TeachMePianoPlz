@@ -48,7 +48,7 @@ namespace TeachMePianoPlz
         protected override void LoadContent()
         {
             Graphics = new GraphicsManager(
-                _graphics_device_manager, // ... we'd rather just instantiate it here, but noOOOoooOO. MonoGame won't let you.
+                _graphics_device_manager, // ... we'd rather just instantiate a new GraphicsDeviceManager here, but noOOOoooOO: MonoGame won't let you.
                 Content,
                 GraphicsDevice,
                 640, 360, 2

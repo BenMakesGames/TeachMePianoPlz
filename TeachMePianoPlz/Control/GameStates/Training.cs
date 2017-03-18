@@ -14,7 +14,12 @@ namespace TeachMePianoPlz
 
         public int[] NOTE_Y = new int[]
         {
-            5, 4, 3, 2, 1, 7, 6
+            5, 4, 10, 9, 8, 7, 6
+        };
+
+        public bool[] NEEDS_OWN_BAR = new bool[]
+        {
+            false, false, true, false, false, false, false
         };
 
         public Dictionary<char, int> LETTER_TO_INDEX = new Dictionary<char, int>()
@@ -53,8 +58,8 @@ namespace TeachMePianoPlz
         public Training()
         {
             // sub-optimal...
-            _midi_listener = new MIDIListener(GetNote);
-            _midi_listener.Start();
+            /*_midi_listener = new MIDIListener(GetNote);
+            _midi_listener.Start();*/
         }
 
         public void GetNote(NoteOnMessage m)
@@ -65,7 +70,7 @@ namespace TeachMePianoPlz
             {
                 for (int i = _notes.Count - 1; i >= 0; i--)
                 {
-                    if (_notes[i].X < 80 && _notes[i].X > -80 && LETTER_TO_INDEX[letter] == _notes[i].Index)
+                    if (_notes[i].X < 40 && _notes[i].X > -40 && LETTER_TO_INDEX[letter] == _notes[i].Index)
                     {
                         _notes.RemoveAt(i);
                         _hit_notes++;
@@ -82,19 +87,23 @@ namespace TeachMePianoPlz
         public void Draw()
         {
             // draw the staff
-            Teacher.Instance.Graphics.DrawLine(0, 180 - 90, Teacher.Instance.Graphics.Width, 180 - 90, Color.Gray);
-            Teacher.Instance.Graphics.DrawLine(0, 360 - 90, Teacher.Instance.Graphics.Width, 360 - 90, Color.Gray);
-            Teacher.Instance.Graphics.DrawLine(0, 540 - 90, Teacher.Instance.Graphics.Width, 540 - 90, Color.Gray);
-            Teacher.Instance.Graphics.DrawLine(0, 720 - 90, Teacher.Instance.Graphics.Width, 720 - 90, Color.Gray);
-            Teacher.Instance.Graphics.DrawLine(0, 900 - 90, Teacher.Instance.Graphics.Width, 900 - 90, Color.Gray);
+            Teacher.Instance.Graphics.DrawLine(0, 150, Teacher.Instance.Graphics.Width, 150, Color.Gray);
+            Teacher.Instance.Graphics.DrawLine(0, 250, Teacher.Instance.Graphics.Width, 250, Color.Gray);
+            Teacher.Instance.Graphics.DrawLine(0, 350, Teacher.Instance.Graphics.Width, 350, Color.Gray);
+            Teacher.Instance.Graphics.DrawLine(0, 450, Teacher.Instance.Graphics.Width, 450, Color.Gray);
+            Teacher.Instance.Graphics.DrawLine(0, 550, Teacher.Instance.Graphics.Width, 550, Color.Gray);
 
-            Teacher.Instance.Graphics.DrawLine(80, 0, 80, Teacher.Instance.Graphics.Height, Color.White);
+            Teacher.Instance.Graphics.DrawLine(39, 0, 39, Teacher.Instance.Graphics.Height, Color.White);
+            Teacher.Instance.Graphics.DrawLine(40, 0, 40, Teacher.Instance.Graphics.Height, Color.White);
 
             // draw the notes
             lock (_notes_lock)
             {
                 foreach (Note n in _notes)
                 {
+                    if (NEEDS_OWN_BAR[n.Index])
+                        Teacher.Instance.Graphics.DrawLine(n.X - 15, n.Y + 45, n.X + 95, n.Y + 45, Color.Gray);
+
                     if (n.HideLetter)
                         Teacher.Instance.Graphics.DrawSprite(n.X, n.Y, GraphicsID.Notes, 7);
                     else
@@ -186,7 +195,7 @@ namespace TeachMePianoPlz
                     {
                         Index = availableNotes[i],
                         X = Teacher.Instance.Graphics.Width,
-                        Y = NOTE_Y[availableNotes[i]] * 90,
+                        Y = NOTE_Y[availableNotes[i]] * 50 + 105,
                         HideLetter = _rng.Next(10) == 0,
                     });
 

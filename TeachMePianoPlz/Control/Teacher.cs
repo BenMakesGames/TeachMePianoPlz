@@ -13,7 +13,7 @@ namespace TeachMePianoPlz
         {
             return new Dictionary<GraphicsID, GraphicsMeta>()
             {
-                { GraphicsID.Notes, new GraphicsMeta(160, 180) },
+                { GraphicsID.Notes, new GraphicsMeta(80, 90) },
                 { GraphicsID.Digits, new GraphicsMeta(28, 38) }
             };
         }
