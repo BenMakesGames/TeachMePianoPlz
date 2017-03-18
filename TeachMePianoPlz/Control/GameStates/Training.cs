@@ -58,8 +58,8 @@ namespace TeachMePianoPlz
         public Training()
         {
             // sub-optimal...
-            /*_midi_listener = new MIDIListener(GetNote);
-            _midi_listener.Start();*/
+            _midi_listener = new MIDIListener(GetNote);
+            _midi_listener.Start();
         }
 
         public void GetNote(NoteOnMessage m)
